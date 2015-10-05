@@ -1,0 +1,34 @@
+{
+  "name": "imagely",
+  "version": "0.1.0",
+  "author": "Mike Petrovich <michael.c.petrovich@gmail.com> (https://github.com/mpetrovich/)",
+  "description": "Render any HTML, SVG, or JS as an image.",
+  "keywords": [
+    "render", "rendering",
+    "rasterizing", "rasterization",
+    "image", "images", "imaging",
+    "png", "gif", "jpg", "jpeg", "pdf",
+    "html", "svg", "js", "d3", "css",
+    "phantom", "phantomjs"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/mpetrovich/imagely",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mpetrovich/imagely.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mpetrovich/imagely/issues"
+  },
+  "main": "imagely.js",
+  "bin": {
+    "imagely": "imagely.bin.js"
+  },
+  "dependencies": {
+    "image-size": "^0.3.5",
+    "jsdom": "^3.1.2",
+    "phantom": "^0.8.0",
+    "phantomjs": "^1.9.18",
+    "yargs": "^3.26.0"
+  }
+}
