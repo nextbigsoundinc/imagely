@@ -31,17 +31,17 @@ var imagely = require('imagely');
 imagely(source, destination, [options], [callback]);
 ```
 
-Name | Type | Description
---- | --- | --- | ---
-`source` | String | URL or local filepath to render. **Required.**
-`destination` | String | Filepath of the image file to generate. Supported file types: PNG, GIF, JPEG, PDF. **Required.**
-`options` | Object | See options below.
-`options.width` | Number | Viewport pixel width.
-`options.height` | Number | Viewport pixel height.
-`options.scale` | Number | Zoom level at which to render, necessary for generating HiDPI/Retina images (e.g. scale = 2). Defaults to 1.
-`options.bg` | String | Background color. Defaults to transparent.
-`options.json` | String | Filepath of a JSON file to preload. File contents will be accessible via `window.data` and available for any scripts in the source file to use.
-`callback` | Function | Function that will be called after the image has been successfully generated. The dimensions of the generated image are passed to the function as an object with properties `width` and `height`.
+Parameters:
+
+- `source` (String) URL or local filepath to render. **Required.**
+- `destination` (String) Filepath of the image file to generate. Supported file types: PNG, GIF, JPEG, PDF. **Required.**
+- `options` (Object) See options below.
+- `options.width` (Number) Viewport pixel width.
+- `options.height` (Number) Viewport pixel height.
+- `options.scale` (Number) Zoom level at which to render, necessary for generating HiDPI/Retina images (e.g. scale = 2). Defaults to 1.
+- `options.bg` (String) Background color. Defaults to transparent.
+- `options.json` (String) Filepath of a JSON file to preload. File contents will be accessible via `window.data` and available for any scripts in the source file to use.
+- `callback` (Function) Function that will be called after the image has been successfully generated. The dimensions of the generated image are passed to the function as an object with properties `width` and `height`.
 
 
 #### Command line
@@ -49,16 +49,16 @@ Name | Type | Description
 imagely source destination [--json=path] [--scale=scale] [--log]
 ```
 
-Name | Type | Description
---- | --- | --- | ---
-`source` | String | URL or local filepath to render. **Required.**
-`destination` | String | Filepath of the image file to generate. Supported file types: PNG, GIF, JPEG, PDF. **Required.**
-`-w`, `--width` | Number | Viewport pixel width.
-`-h`, `--height` | Number | Viewport pixel height.
-`-s`, `--scale` | Number | Zoom level at which to render, necessary for generating HiDPI/Retina images (e.g. scale = 2). Defaults to 1.
-`-b`, `--bg` | String | Background color. Defaults to transparent.
-`-d`, `--json` | String | Filepath of a JSON file to preload. File contents will be accessible via `window.data` and available for any scripts in the source file to use.
-`-l`, `--log` | Flag | If specified, the dimensions of the final image will be logged to the console as `width height`.
+Parameters:
+
+- `source` (String) URL or local filepath to render. **Required.**
+- `destination` (String) Filepath of the image file to generate. Supported file types: PNG, GIF, JPEG, PDF. **Required.**
+- `-w`, `--width` (Number) Viewport pixel width.
+- `-h`, `--height` (Number) Viewport pixel height.
+- `-s`, `--scale` (Number) Zoom level at which to render, necessary for generating HiDPI/Retina images (e.g. scale = 2). Defaults to 1.
+- `-b`, `--bg` (String) Background color. Defaults to transparent.
+- `-d`, `--json` (String) Filepath of a JSON file to preload. File contents will be accessible via `window.data` and available for any scripts in the source file to use.
+- `-l`, `--log` (Flag) If specified, the dimensions of the final image will be logged to the console as `width height`.
 
 
 Examples
