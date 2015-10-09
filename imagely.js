@@ -1,5 +1,4 @@
 var fs = require('fs');
-var jsdom = require('jsdom');
 var imageSize = require('image-size');
 var path = require('path');
 var phantom = require('phantom');
@@ -36,6 +35,11 @@ function imagely(source, destination, options, callback) {
 	}
 }
 
+/**
+ * Generates an image from a URL for an HTML file.
+ *
+ * @private
+ */
 function renderUrl(url, destination, options, callback) {
 	phantom.create(function(phantomjs) {
 		phantomjs.createPage(function(page) {
@@ -52,56 +56,51 @@ function renderUrl(url, destination, options, callback) {
 }
 
 /**
- * Generates an image from a local file.
+ * Generates an image from a local HTML file.
+ *
+ * @private
+ * @todo Add support for remote scripts and stylesheets
+ */
+function renderFile(filepath, destination, options, callback) {
+	var html = fs.readFileSync(filepath, 'utf-8');
+
+	// Inlines scripts
+	html = html.replace(/(<script [^>]*src="([^"]+.js)"[^>]*>)/gi, function(subject, scriptTag, jsFile) {
+		if (isUrl(jsFile)) {
+			// Skips remote scripts
+			return scriptTag;
+		}
+
+		var jsFilepath = path.resolve(path.dirname(filepath), jsFile);
+		var js = fs.readFileSync(jsFilepath, 'utf-8');
+		return '<script>' + js + '</script>';
+	});
+
+	// Inlines stylesheets
+	html = html.replace(/(<link [^>]*href="([^"]+.css)"[^>]*>)/gi, function(subject, linkTag, cssFile) {
+		if (isUrl(cssFile)) {
+			// Skips remote stylesheets
+			return linkTag;
+		}
+
+		var cssFilepath = path.resolve(path.dirname(filepath), cssFile);
+		var css = fs.readFileSync(cssFilepath, 'utf-8');
+		return '<style>' + css + '</style>';
+	});
+
+	phantom.create(function(phantomjs) {
+		phantomjs.createPage(function(page) {
+			page.setContent(html);
+			renderPage(page, phantomjs, destination, options, callback);
+		});
+	}, { binary: phantomjs.path });
+}
+
+/**
+ * Generates an image from a populated PhantomJS page.
  *
  * @private
  */
-function renderFile(filepath, destination, options, callback) {
-	jsdom.env({
-		file: filepath,
-		features: {
-			FetchExternalResources: ['link', 'script'],
-			ProcessExternalResources: ['script'],
-		},
-		created: function(err, window) {
-			if (err) {
-				console.error('imagely: Error while creating window', err);
-				return;
-			}
-
-			if (options.json) {
-				var json = fs.readFileSync(options.json, 'utf-8');
-				window.data = JSON.parse(json);
-			}
-		},
-		done: function(err, window) {
-			if (err) {
-				console.error('imagely: Error while loading document', err);
-				return;
-			}
-
-			var html = window.document.documentElement.outerHTML;
-
-			// Removes scripts since they have already been processed
-			html = html.replace(/<script .*?<\/script>/gi, '');
-
-			// Inlines external stylesheets
-			html = html.replace(/(<link [^>]*href="([^"]+.css)"[^>]*>)/gi, function(subject, linkTag, cssFile) {
-				var cssFilepath = path.resolve(path.dirname(filepath), cssFile);
-				var css = fs.readFileSync(cssFilepath, 'utf-8');
-				return '<style>' + css + '</style>';
-			});
-
-			phantom.create(function(phantomjs) {
-				phantomjs.createPage(function(page) {
-					page.setContent(html);
-					renderPage(page, phantomjs, destination, options, callback);
-				});
-			}, { binary: phantomjs.path });
-		},
-	});
-}
-
 function renderPage(page, phantomjs, destination, options, callback) {
 	if (options.width || options.height) {
 		page.set('viewportSize', { width: options.width, height: options.height });
