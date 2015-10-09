@@ -38,9 +38,12 @@
     "imagely": "imagely.bin.js"
   },
   "dependencies": {
+    "bluebird": "^2.10.2",
     "image-size": "^0.3.5",
+    "lodash": "^3.10.1",
     "phantom": "^0.8.0",
     "phantomjs": "^1.9.18",
+    "request-promise": "^0.4.3",
     "yargs": "^3.26.0"
   }
 }

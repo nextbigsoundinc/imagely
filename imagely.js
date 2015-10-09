@@ -1,8 +1,11 @@
-var fs = require('fs');
+var _ = require('lodash');
+var Promise = require('bluebird');
+var fs = Promise.promisifyAll(require('fs'));
 var imageSize = require('image-size');
 var path = require('path');
 var phantom = require('phantom');
 var phantomjs = require('phantomjs');
+var request = require('request-promise');
 
 /**
  * Renders a source HTML file as an image.
@@ -58,42 +61,92 @@ function renderUrl(url, destination, options, callback) {
 /**
  * Generates an image from a local HTML file.
  *
+ * @todo Refactor to improve modularity & reusability
+ *
  * @private
- * @todo Add support for remote scripts and stylesheets
  */
 function renderFile(filepath, destination, options, callback) {
 	var html = fs.readFileSync(filepath, 'utf-8');
 
-	// Inlines scripts
-	html = html.replace(/(<script [^>]*src="([^"]+.js)"[^>]*>)/gi, function(subject, scriptTag, jsFile) {
-		if (isUrl(jsFile)) {
-			// Skips remote scripts
-			return scriptTag;
-		}
-
-		var jsFilepath = path.resolve(path.dirname(filepath), jsFile);
-		var js = fs.readFileSync(jsFilepath, 'utf-8');
-		return '<script>' + js + '</script>';
+	// Finds all external script and stylesheet filenames
+	var scripts = html.match(/<script .*?src="(.*?)".*?<\/script>/gi).map(function(tag) {
+		return tag.replace(/<script .*?src="(.*?)".*?<\/script>/gi, '$1');
+	});
+	var stylesheets = html.match(/<link .*?rel="stylesheet".*?>/gi).map(function(tag) {
+		return tag.replace(/<link .*?href="(.*?)".*?>/gi, '$1');
 	});
 
-	// Inlines stylesheets
-	html = html.replace(/(<link [^>]*href="([^"]+.css)"[^>]*>)/gi, function(subject, linkTag, cssFile) {
-		if (isUrl(cssFile)) {
-			// Skips remote stylesheets
-			return linkTag;
-		}
+	var files = {};
+	var dirname = path.dirname(filepath);
 
-		var cssFilepath = path.resolve(path.dirname(filepath), cssFile);
-		var css = fs.readFileSync(cssFilepath, 'utf-8');
-		return '<style>' + css + '</style>';
+	// Fetches all collected script and stylesheet content
+	scripts.forEach(function(filename) {
+		var filepath = isUrl(filename) ? filename : path.resolve(dirname, filename);
+		files[filename] = {
+			externalTag: new RegExp('<script .*?src="' + filename + '".*?</script>', 'gi'),
+			inlineTagName: 'script',
+			promise: fetchFile(filepath),
+		};
 	});
-
-	phantom.create(function(phantomjs) {
-		phantomjs.createPage(function(page) {
-			page.setContent(html);
-			renderPage(page, phantomjs, destination, options, callback);
+	stylesheets.forEach(function(filename) {
+		var filepath = isUrl(filename) ? filename : path.resolve(dirname, filename);
+		files[filename] = {
+			externalTag: new RegExp('<link .*?href="' + filename + '".*?>', 'gi'),
+			inlineTagName: 'style',
+			promise: fetchFile(filepath),
+		};
+	});
+	_.forEach(files, function(file) {
+		file.promise.then(function(content) {
+			file.content = content;
 		});
-	}, { binary: phantomjs.path });
+	});
+
+	Promise
+		.all(_.pluck(files, 'promise'))
+		.then(function inlineExternalContent() {
+			_.forEach(files, function(file) {
+				var openTag = '<' + file.inlineTagName + '>';
+				var closeTag = '</' + file.inlineTagName + '>';
+				var inlineTag = openTag + file.content + closeTag;
+
+				html = html.replace(file.externalTag, function() {
+					// Function required to avoid special replacement patterns
+					// triggered by str.replace(regex, newSubStr)
+					return inlineTag;
+				});
+			});
+
+			return html;
+		})
+		.then(function renderHtml(html) {
+			phantom.create(function(phantomjs) {
+				phantomjs.createPage(function(page) {
+					page.setContent(html);
+					renderPage(page, phantomjs, destination, options, callback);
+				});
+			}, { binary: phantomjs.path });
+		})
+		.catch(function(err) {
+			console.error('imagely: Error while rendering file "' + filepath + '"', err);
+		});
+}
+
+/**
+ * Retrieves the content of a local or remote file.
+ *
+ * @param {String} file - Local filepath or remote URL to fetch
+ * @return {Promise} Resolved with the file content
+ */
+function fetchFile(file) {
+	if (isUrl(file)) {
+		// Remote file
+		return request(file);
+	}
+	else {
+		// Local file
+		return fs.readFileAsync(file, 'utf-8');
+	}
 }
 
 /**
