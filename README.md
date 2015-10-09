@@ -46,7 +46,7 @@ Parameters:
 
 #### Command line
 ```sh
-imagely source destination [--json=path] [--scale=scale] [--log]
+imagely source destination [--width=<number>] [--height=<number>] [--scale=<number>] [--bg=<color>] [--json=<path>] [--log]
 ```
 
 Parameters:
