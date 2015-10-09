@@ -42,6 +42,10 @@ function imagely(source, destination, options, callback) {
  * Generates an image from a URL for an HTML file.
  *
  * @private
+ * @param {String} url - URL of the HTML page to render
+ * @param {String} destination - Filepath of the image to save
+ * @param {Object} options
+ * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
  */
 function renderUrl(url, destination, options, callback) {
 	phantom.create(function(phantomjs) {
@@ -64,6 +68,10 @@ function renderUrl(url, destination, options, callback) {
  * @todo Refactor to improve modularity & reusability
  *
  * @private
+ * @param {String} filepath - Local filepath of the HTML page to render
+ * @param {String} destination - Filepath of the image to save
+ * @param {Object} options
+ * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
  */
 function renderFile(filepath, destination, options, callback) {
 	var html = fs.readFileSync(filepath, 'utf-8');
@@ -153,6 +161,11 @@ function fetchFile(file) {
  * Generates an image from a populated PhantomJS page.
  *
  * @private
+ * @param {phantomjs.webpage} page
+ * @param {phantomjs} phantomjs
+ * @param {String} destination - Filepath of the image to save
+ * @param {Object} options
+ * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
  */
 function renderPage(page, phantomjs, destination, options, callback) {
 	if (options.width || options.height) {
@@ -175,10 +188,22 @@ function renderPage(page, phantomjs, destination, options, callback) {
 	});
 }
 
+/**
+ * Is a value a function?
+ *
+ * @param {*} func
+ * @return {Boolean} true if func is a function
+ */
 function isFunction(func) {
 	return typeof func === 'function';
 }
 
+/**
+ * Is a string a URL?
+ *
+ * @param {String} str
+ * @return {Boolean} true if str is a URL
+ */
 function isUrl(str) {
 	return /^https?:\/\//.test(str);
 }
