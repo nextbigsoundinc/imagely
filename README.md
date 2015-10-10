@@ -116,3 +116,8 @@ imagely(
 imagely http://ariya.github.io/svg/tiger.svg examples/tiger.png --scale=2 --log
 # Logs: 1004 1051
 ```
+
+
+How it works
+------------
+Imagely is a light wrapper around PhantomJS. Local file rendering isn't well supported by PhantomJS, so in those cases Imagely inlines the content of all referenced scripts and stylesheets, even if they're remote URLs.
