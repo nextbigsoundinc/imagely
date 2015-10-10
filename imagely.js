@@ -110,6 +110,15 @@ function renderFile(filepath, destination, options, callback) {
 		});
 	});
 
+	if (options.json) {
+		var json = fs.readFileSync(options.json, 'utf-8');
+		json = JSON.stringify(JSON.parse(json));  // Removes whitespace
+
+		var js = 'window.data = ' + json;
+		var script = '<script>' + js + '</script>';
+		html = html.replace('<head>', '<head>' + script);
+	}
+
 	Promise
 		.all(_.pluck(files, 'promise'))
 		.then(function inlineExternalContent() {
