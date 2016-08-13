@@ -194,7 +194,7 @@ function renderPage(page, phantomjs, destination, options, callback) {
 
 		if (callback) {
 			var dimensions = imageSize(destination);
-			callback(dimensions);
+			callback(null, dimensions);
 		}
 	});
 }
