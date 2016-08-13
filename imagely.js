@@ -51,12 +51,12 @@ function renderUrl(url, destination, options, callback) {
 	phantom.create(function(phantomjs) {
 		phantomjs.createPage(function(page) {
 			page.open(url, function(status) {
-				if (status !== 'success') {
-					console.error('imagely: Error while loading URL "' + url + '"');
-					return;
+				if (status === 'success') {
+					renderPage(page, phantomjs, destination, options, callback);
 				}
-
-				renderPage(page, phantomjs, destination, options, callback);
+				else if (callback) {
+					callback(new Error('Error loading URL "' + url + '"'));
+				}
 			});
 		});
 	}, { binary: phantomjs.path });
@@ -145,7 +145,9 @@ function renderFile(filepath, destination, options, callback) {
 			}, { binary: phantomjs.path });
 		})
 		.catch(function(err) {
-			console.error('imagely: Error while rendering file "' + filepath + '"', err);
+			if (callback) {
+				callback('Error rendering file "' + filepath + '": ' + err)
+			}
 		});
 }
 
@@ -190,7 +192,7 @@ function renderPage(page, phantomjs, destination, options, callback) {
 	page.render(destination, function() {
 		phantomjs.exit();
 
-		if (isFunction(callback)) {
+		if (callback) {
 			var dimensions = imageSize(destination);
 			callback(dimensions);
 		}
