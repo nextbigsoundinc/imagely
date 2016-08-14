@@ -193,7 +193,13 @@ function renderPage(page, phantomjs, destination, options, callback) {
 		phantomjs.exit();
 
 		if (callback) {
-			var dimensions = imageSize(destination);
+			var dimensions;
+			try {
+				dimensions = imageSize(destination);
+			}
+			catch (exception) {
+				dimensions = { width: null, height: null };
+			}
 			callback(null, dimensions);
 		}
 	});
