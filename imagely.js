@@ -19,7 +19,8 @@ var request = require('request-promise');
  * @param {Number} [options.scale=1] - Zoom level; use scale = 2 for HiDPI/Retina-ready output
  * @param {String} [options.bg] - Background color
  * @param {String} [options.json] - Filepath of JSON data to preload into window.data
- * @param {Function} [callback] - Function to call upon completion; passed the image dimensions as { width, height }
+ * @param {Function} [callback] - Function to call upon completion; signature: (error, dimensions)
+ *                                where `dimensions` is an object with properties: { width, height }
  */
 function imagely(source, destination, options, callback) {
 	if (isFunction(options)) {

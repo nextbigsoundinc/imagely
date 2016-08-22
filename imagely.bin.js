@@ -17,8 +17,13 @@ options.json = args.json || args.d;
 options.log = args.log || args.l;
 
 if (options.log) {
-	callback = function(dimensions) {
-		console.log(dimensions.width, dimensions.height);
+	callback = function(error, dimensions) {
+		if (error) {
+			console.log(error);
+		}
+		else {
+			console.log(dimensions.width, dimensions.height);
+		}
 	};
 }
 
