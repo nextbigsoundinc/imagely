@@ -60,7 +60,10 @@ function renderUrl(url, destination, options, callback) {
 				}
 			});
 		});
-	}, { binary: phantomjs.path });
+	}, {
+		binary: phantomjs.path,
+		dnodeOpts: { weak: false }
+	});
 }
 
 /**
