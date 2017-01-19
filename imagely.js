@@ -146,7 +146,10 @@ function renderFile(filepath, destination, options, callback) {
 					page.setContent(html);
 					renderPage(page, phantomjs, destination, options, callback);
 				});
-			}, { binary: phantomjs.path });
+			}, {
+				binary: phantomjs.path,
+				dnodeOpts: { weak: false }
+			});
 		})
 		.catch(function(err) {
 			if (callback) {
