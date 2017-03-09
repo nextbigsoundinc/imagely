@@ -124,7 +124,7 @@ function renderFile(filepath, destination, options, callback) {
 	}
 
 	Promise
-		.all(_.pluck(files, 'promise'))
+		.all(_.map(files, 'promise'))
 		.then(function inlineExternalContent() {
 			_.forEach(files, function(file) {
 				var openTag = '<' + file.inlineTagName + '>';
