@@ -24,6 +24,18 @@ class Imagely {
 	 *                                where `dimensions` is an object with properties: { width, height }
 	 */
 	constructor(source, destination, options, callback) {
+		Object.assign(this, { source, destination, options, callback });
+
+		this.json = {};
+		this.batchLength = 1;
+		this.batchIndex = 0;
+		this.batchInterval = 800;
+		this.originalHtmlString = '';
+
+		this.imagely(source, destination, options, callback);
+	}
+
+	imagely(source, destination, options, callback) {
 		if (this.isFunction(options)) {
 			// Called as imagely(source, destination, callback)
 			callback = options;
@@ -116,12 +128,15 @@ class Imagely {
 		});
 
 		if (options.json) {
-			var json = fs.readFileSync(options.json, 'utf-8');
-			json = JSON.stringify(JSON.parse(json));  // Removes whitespace
+			this.json = JSON.parse(fs.readFileSync(options.json, 'utf-8'));
 
-			var js = 'window.data = ' + json;
-			var script = '<script>' + js + '</script>';
-			html = html.replace('<head>', '<head>' + script);
+			// If not batching images, set window data once.
+			if (!options.batch) {
+				html = this.setWindowData(html, JSON.stringify(this.json));
+			}
+			else {
+				this.batchLength = this.json.length;
+			}
 		}
 
 		Promise
@@ -144,8 +159,13 @@ class Imagely {
 			.then((html) => {
 				phantom.create((phantomjs) => {
 					phantomjs.createPage((page) => {
-						page.setContent(html);
-						this.renderPage(page, phantomjs, destination, options, callback);
+						if (!options.batch) {
+							page.setContent(html);
+							this.renderPage(page, phantomjs, destination, options, callback);
+						} else {
+							this.originalHtmlString = html;
+							this.batch(phantomjs, html, page, this.json);
+						}
 					});
 				}, {
 					binary: phantomjs.path,
@@ -157,6 +177,50 @@ class Imagely {
 					callback('Error rendering file "' + filepath + '": ' + err)
 				}
 			});
+	}
+
+	/**
+	 * Assuming css, html, and js are the same in source files, render pages with unique json data.
+	 * The hope is
+	 *		1) We can make time gains by not opening and closing phantom every image.
+	 *		2) We can make time gains by caching repeated generated css, js, and html.
+	 *
+	 * @param {Object} phantomjs
+	 * @param {String} html Html to inject into the page.
+	 * @param {Object} page phantomjs page instance.
+	 * @param {Object} json The object we're looping over and setting uniquely per page.
+	 */
+	batch(phantomjs, html, page, json) {
+		console.info(`image ${this.batchIndex} of ${this.batchLength}`);
+
+		if (this.batchIndex < this.batchLength) {
+			html = this.setWindowData(html, JSON.stringify(json[this.batchIndex]));
+			page.setContent(html);
+
+			let batchDestination = this.makeUniqueDestination(this.destination, this.batchIndex);
+			this.renderPage(page, phantomjs, batchDestination, this.options, this.callback);
+			this.batchIndex++;
+
+			setTimeout(() => {
+				this.batch(phantomjs, html, page, json);
+			}, this.batchInterval); 
+			// We have an interval here because without it, it goes too fast.
+			// Garbage collection and callbacks will not happen in time (it will go as fast as the event cycle if you let it - ~20ms).
+			// @todo This is brittle, and should be handled with a promise or callback.
+		}
+	}
+
+	/**
+	 * Returns a unique image destination name. The logic is arbitrary and should be replaced as needed.
+	 *
+	 * @param {String} destination Original local filepath.
+	 * @param {Number} index Index of image we're renaming; a quick way to make each image unique.
+	 * @return {String} Unique destination.
+	 */
+	makeUniqueDestination(destination, index) {
+		let name = destination.split('.').slice(0, -1).pop();
+
+		return destination.replace(name, name + index);
 	}
 
 	/**
@@ -187,6 +251,7 @@ class Imagely {
 	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
 	renderPage(page, phantomjs, destination, options, callback) {
+
 		if (options.width || options.height) {
 			page.set('viewportSize', { width: options.width, height: options.height });
 		}
@@ -197,8 +262,10 @@ class Imagely {
 			page.evaluate('function() { document.body.bgColor = "' + options.bg + '"; }');
 		}
 
-		page.render(destination, function() {
-			phantomjs.exit();
+		page.render(destination, () => {
+			if (!options.batch || (this.batchIndex === this.batchLength)) {
+				phantomjs.exit();
+			}
 
 			if (callback) {
 				var dimensions;
@@ -213,6 +280,17 @@ class Imagely {
 		});
 	}
 
+	setWindowData(html, json) {
+		var js = 'window.data = ' + json;
+		var script = '<script>' + js + '</script>';
+
+		if (this.options.batch) {
+			// Replace originalHtmlString when batching so we don't append scripts to same html string.
+			html = this.originalHtmlString;
+		}
+		return html.replace('<head>', '<head>' + script);
+	}
+	
 	/**
 	 * Is a value a function?
 	 *
