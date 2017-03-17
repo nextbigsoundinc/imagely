@@ -7,28 +7,23 @@ import phantomjs from 'phantomjs';
 import request from 'request-promise';
 const fs = Promise.promisifyAll(require('fs'));
 
-/**
- * Renders a source HTML file as an image.
- *
- * @public
- * @param {String} source - HTML filepath or URL
- * @param {String} destination - Destination image filepath; supported extensions are JPG, PNG, GIF, PDF
- * @param {Object} [options]
- * @param {Number} [options.width] - Viewport pixel width
- * @param {Number} [options.height] - Viewport pixel height
- * @param {Number} [options.scale=1] - Zoom level; use scale = 2 for HiDPI/Retina-ready output
- * @param {String} [options.bg] - Background color
- * @param {String} [options.json] - Filepath of JSON data to preload into window.data
- * @param {Function} [callback] - Function to call upon completion; signature: (error, dimensions)
- *                                where `dimensions` is an object with properties: { width, height }
- */
 class Imagely {
+	/**
+	 * Renders a source HTML file as an image.
+	 *
+	 * @public
+	 * @param {String} source - HTML filepath or URL
+	 * @param {String} destination - Destination image filepath; supported extensions are JPG, PNG, GIF, PDF
+	 * @param {Object} [options]
+	 * @param {Number} [options.width] - Viewport pixel width
+	 * @param {Number} [options.height] - Viewport pixel height
+	 * @param {Number} [options.scale=1] - Zoom level; use scale = 2 for HiDPI/Retina-ready output
+	 * @param {String} [options.bg] - Background color
+	 * @param {String} [options.json] - Filepath of JSON data to preload into window.data
+	 * @param {Function} [callback] - Function to call upon completion; signature: (error, dimensions)
+	 *                                where `dimensions` is an object with properties: { width, height }
+	 */
 	constructor(source, destination, options, callback) {
-		Object.assign(this, { source, destination, options, callback });
-		this.imagely(source, destination, options, callback);
-	}
-
-	imagely(source, destination, options, callback) {
 		if (this.isFunction(options)) {
 			// Called as imagely(source, destination, callback)
 			callback = options;
