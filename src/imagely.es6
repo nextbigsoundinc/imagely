@@ -31,6 +31,8 @@ class Imagely {
 		this.batchIndex = 0;
 		this.batchInterval = 800;
 		this.originalHtmlString = '';
+		this.phantomjs = undefined;
+		this.page = undefined;
 
 		this.imagely(source, destination, options, callback);
 	}
@@ -164,7 +166,9 @@ class Imagely {
 							this.renderPage(page, phantomjs, destination, options, callback);
 						} else {
 							this.originalHtmlString = html;
-							this.batch(phantomjs, html, page, this.json);
+							this.phantomjs = phantomjs;
+							this.page = page;
+							this.batch();
 						}
 					});
 				}, {
@@ -184,29 +188,15 @@ class Imagely {
 	 * The hope is
 	 *		1) We can make time gains by not opening and closing phantom every image.
 	 *		2) We can make time gains by caching repeated generated css, js, and html.
-	 *
-	 * @param {Object} phantomjs
-	 * @param {String} html Html to inject into the page.
-	 * @param {Object} page phantomjs page instance.
-	 * @param {Object} json The object we're looping over and setting uniquely per page.
 	 */
-	batch(phantomjs, html, page, json) {
-		console.info(`image ${this.batchIndex} of ${this.batchLength}`);
-
+	batch() {
 		if (this.batchIndex < this.batchLength) {
-			html = this.setWindowData(html, JSON.stringify(json[this.batchIndex]));
-			page.setContent(html);
+			let html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.batchIndex]));
+			this.page.setContent(html);
 
 			let batchDestination = this.makeUniqueDestination(this.destination, this.batchIndex);
-			this.renderPage(page, phantomjs, batchDestination, this.options, this.callback);
+			this.renderPage(this.page, this.phantomjs, batchDestination, this.options, this.callback);
 			this.batchIndex++;
-
-			setTimeout(() => {
-				this.batch(phantomjs, html, page, json);
-			}, this.batchInterval); 
-			// We have an interval here because without it, it goes too fast.
-			// Garbage collection and callbacks will not happen in time (it will go as fast as the event cycle if you let it - ~20ms).
-			// @todo This is brittle, and should be handled with a promise or callback.
 		}
 	}
 
@@ -277,6 +267,10 @@ class Imagely {
 				}
 				callback(null, dimensions);
 			}
+
+			if (!(this.batchIndex === this.batchLength)) {
+				this.batch();
+			}
 		});
 	}
 
@@ -288,6 +282,7 @@ class Imagely {
 			// Replace originalHtmlString when batching so we don't append scripts to same html string.
 			html = this.originalHtmlString;
 		}
+
 		return html.replace('<head>', '<head>' + script);
 	}
 	
