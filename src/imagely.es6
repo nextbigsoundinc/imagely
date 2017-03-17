@@ -29,7 +29,6 @@ class Imagely {
 		this.json = {};
 		this.batchLength = 1;
 		this.batchIndex = 0;
-		this.batchInterval = 800;
 		this.originalHtmlString = '';
 		this.phantomjs = undefined;
 		this.page = undefined;
