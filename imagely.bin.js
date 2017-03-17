@@ -16,7 +16,7 @@ options.scale = args.scale || args.s;
 options.bg = args.bg || args.b;
 options.json = args.json || args.d;
 options.log = args.log || args.l;
-options.batch = args.batch || args.b;
+options.batch = args.batch;
 
 if (options.log) {
 	callback = function(error, dimensions) {
