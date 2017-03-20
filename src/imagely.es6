@@ -33,23 +33,22 @@ class Imagely {
 		this.phantomjs = undefined;
 		this.page = undefined;
 
-		this.imagely(source, destination, options, callback);
+		this.imagely();
 	}
 
-	imagely(source, destination, options, callback) {
-		if (this.isFunction(options)) {
-			// Called as imagely(source, destination, callback)
-			callback = options;
-			options = undefined;
+	imagely() {
+		if (this.isFunction(this.options)) {
+			this.callback = this.options;
+			this.options = undefined;
 		}
 
-		options = options || {};
+		this.options = this.options || {};
 
-		if (this.isUrl(source)) {
-			this.renderUrl(source, destination, options, callback);
+		if (this.isUrl(this.source)) {
+			this.renderUrl();
 		}
 		else {
-			this.renderFile(source, destination, options, callback);
+			this.renderFile();
 		}
 	}
 
@@ -57,20 +56,16 @@ class Imagely {
 	 * Generates an image from a URL for an HTML file.
 	 *
 	 * @private
-	 * @param {String} url - URL of the HTML page to render
-	 * @param {String} destination - Filepath of the image to save
-	 * @param {Object} options
-	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
-	renderUrl(url, destination, options, callback) {
+	renderUrl() {
 		phantom.create(function(phantomjs) {
 			phantomjs.createPage(function(page) {
-				page.open(url, function(status) {
+				page.open(this.source, function(status) {
 					if (status === 'success') {
-						this.renderPage(page, phantomjs, destination, options, callback);
+						this.renderPage(this.destination);
 					}
-					else if (callback) {
-						callback(new Error('Error loading URL "' + url + '"'));
+					else if (this.callback) {
+						callback(new Error('Error loading URL "' + this.source + '"'));
 					}
 				});
 			});
@@ -86,13 +81,9 @@ class Imagely {
 	 * @todo Refactor to improve modularity & reusability
 	 *
 	 * @private
-	 * @param {String} filepath - Local filepath of the HTML page to render
-	 * @param {String} destination - Filepath of the image to save
-	 * @param {Object} options
-	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
-	renderFile(filepath, destination, options, callback) {
-		var html = fs.readFileSync(filepath, 'utf-8');
+	renderFile() {
+		var html = fs.readFileSync(this.source, 'utf-8');
 
 		// Finds all external script and stylesheet filenames
 		var scripts = html.match(/<script .*?src="(.*?)".*?<\/script>/gi).map(function(tag) {
@@ -103,7 +94,7 @@ class Imagely {
 		});
 
 		var files = {};
-		var dirname = path.dirname(filepath);
+		var dirname = path.dirname(this.source);
 
 		// Fetches all collected script and stylesheet content
 		scripts.forEach((filename) => {
@@ -128,11 +119,11 @@ class Imagely {
 			});
 		});
 
-		if (options.json) {
-			this.json = JSON.parse(fs.readFileSync(options.json, 'utf-8'));
+		if (this.options.json) {
+			this.json = JSON.parse(fs.readFileSync(this.options.json, 'utf-8'));
 
 			// If not batching images, set window data once.
-			if (!options.batch) {
+			if (!this.options.batch) {
 				html = this.setWindowData(html, JSON.stringify(this.json));
 			}
 			else {
@@ -143,6 +134,7 @@ class Imagely {
 		Promise
 			.all(_.map(files, 'promise'))
 			.then(function inlineExternalContent() {
+
 				_.forEach(files, function(file) {
 					var openTag = '<' + file.inlineTagName + '>';
 					var closeTag = '</' + file.inlineTagName + '>';
@@ -160,13 +152,15 @@ class Imagely {
 			.then((html) => {
 				phantom.create((phantomjs) => {
 					phantomjs.createPage((page) => {
-						if (!options.batch) {
-							page.setContent(html);
-							this.renderPage(page, phantomjs, destination, options, callback);
+						this.page = page;
+						this.phantomjs = phantomjs;
+
+						// page, phantomjs, destination, options, callback
+						if (!this.options.batch) {
+							this.page.setContent(html);
+							this.renderPage(this.destination);
 						} else {
-							this.originalHtmlString = html;
-							this.phantomjs = phantomjs;
-							this.page = page;
+							this.originalHtmlString = html;							
 							this.batch();
 						}
 					});
@@ -176,7 +170,7 @@ class Imagely {
 				});
 			})
 			.catch((err) => {
-				if (callback) {
+				if (this.callback) {
 					callback('Error rendering file "' + filepath + '": ' + err)
 				}
 			});
@@ -194,7 +188,7 @@ class Imagely {
 			this.page.setContent(html);
 
 			let batchDestination = this.makeUniqueDestination(this.destination, this.batchIndex);
-			this.renderPage(this.page, this.phantomjs, batchDestination, this.options, this.callback);
+			this.renderPage(batchDestination);
 			this.batchIndex++;
 		}
 	}
@@ -233,30 +227,25 @@ class Imagely {
 	 * Generates an image from a populated PhantomJS page.
 	 *
 	 * @private
-	 * @param {phantomjs.webpage} page
-	 * @param {phantomjs} phantomjs
 	 * @param {String} destination - Filepath of the image to save
-	 * @param {Object} options
-	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
-	renderPage(page, phantomjs, destination, options, callback) {
+	renderPage(destination) {
+		if (this.options.width || this.options.height) {
+			this.page.set('viewportSize', { width: this.options.width, height: this.options.height });
+		}
+		if (this.options.scale) {
+			this.page.set('zoomFactor', this.options.scale);
+		}
+		if (this.options.bg) {
+			this.page.evaluate('function() { document.body.bgColor = "' + this.options.bg + '"; }');
+		}
 
-		if (options.width || options.height) {
-			page.set('viewportSize', { width: options.width, height: options.height });
-		}
-		if (options.scale) {
-			page.set('zoomFactor', options.scale);
-		}
-		if (options.bg) {
-			page.evaluate('function() { document.body.bgColor = "' + options.bg + '"; }');
-		}
-
-		page.render(destination, () => {
-			if (!options.batch || (this.batchIndex === this.batchLength)) {
-				phantomjs.exit();
+		this.page.render(destination, () => {
+			if (!this.options.batch || (this.batchIndex === this.batchLength)) {
+				this.phantomjs.exit();
 			}
 
-			if (callback) {
+			if (this.callback) {
 				var dimensions;
 				try {
 					dimensions = imageSize(destination);
@@ -264,7 +253,7 @@ class Imagely {
 				catch (exception) {
 					dimensions = { width: null, height: null };
 				}
-				callback(null, dimensions);
+				this.callback(null, dimensions);
 			}
 
 			if (!(this.batchIndex === this.batchLength)) {
