@@ -38,7 +38,7 @@
   },
   "main": "imagely.bin.js",
   "scripts": {
-    "compile": "BABEL_DISABLE_CACHE=1 ./node_modules/.bin/babel -d lib/ src/ --presets es2015",
+    "compile": "BABEL_DISABLE_CACHE=1 BABEL_CACHE_PATH=/tmp/.babel.json ./node_modules/.bin/babel -d lib/ src/ --presets es2015",
     "prepublish": "npm run compile"
   },
   "dependencies": {
