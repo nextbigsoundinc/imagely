@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('babel-core/register');
+require('babel-register');
 var Imagely = require('./imagely.es6').default;
 var yargs = require('yargs');
 var args = yargs.argv;
