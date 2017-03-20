@@ -33,17 +33,23 @@
   "bugs": {
     "url": "https://github.com/mpetrovich/imagely/issues"
   },
-  "main": "imagely.js",
   "bin": {
     "imagely": "imagely.bin.js"
   },
+  "main": "imagely.bin.js",
   "dependencies": {
-    "bluebird": "^2.10.2",
-    "image-size": "^0.3.5",
-    "lodash": "^3.10.1",
-    "phantom": "^0.8.0",
-    "phantomjs": "^1.9.18",
-    "request-promise": "^0.4.3",
-    "yargs": "^3.26.0"
+    "babel-cli": "^6.23.0",
+    "babel-core": "^6.23.1",
+    "babel-preset-es2015": "^6.22.0",
+    "bluebird": "^3.5.0",
+    "image-size": "^0.5.1",
+    "lodash": "^4.17.4",
+    "phantom": "1.x",
+    "phantomjs": "^2.1.7",
+    "request-promise": "^4.1.1",
+    "yargs": "^7.0.1"
+  },
+  "devDependencies": {
+    "yarn": "^0.21.3"
   }
 }

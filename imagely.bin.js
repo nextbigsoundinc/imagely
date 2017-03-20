@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-var imagely = require('../imagely');
+require('babel-register');
+var Imagely = require('./imagely.es6').default;
 var yargs = require('yargs');
 var args = yargs.argv;
 
@@ -27,4 +28,4 @@ if (options.log) {
 	};
 }
 
-imagely(source, destination, options, callback);
+new Imagely(source, destination, options, callback);
