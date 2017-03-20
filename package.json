@@ -37,6 +37,10 @@
     "imagely": "imagely.bin.js"
   },
   "main": "imagely.bin.js",
+  "scripts": {
+    "compile": "babel -d lib/ src/ --presets es2015",
+    "prepublish": "npm run compile"
+  },
   "dependencies": {
     "babel-cli": "^6.23.0",
     "babel-core": "^6.23.1",
