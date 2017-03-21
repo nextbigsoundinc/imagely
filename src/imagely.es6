@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import Promise from 'bluebird';
-import imageSize from 'image-size';
+
 import path from 'path';
 import phantom from 'phantom';
 import phantomjs from 'phantomjs';
@@ -20,44 +20,55 @@ class Imagely {
 	 * @param {Number} [options.scale=1] - Zoom level; use scale = 2 for HiDPI/Retina-ready output
 	 * @param {String} [options.bg] - Background color
 	 * @param {String} [options.json] - Filepath of JSON data to preload into window.data
+	 * @param {Boolean} [options.batch] - Whether to loop through options.json and create a new image each iteration.
 	 * @param {Function} [callback] - Function to call upon completion; signature: (error, dimensions)
 	 *                                where `dimensions` is an object with properties: { width, height }
 	 */
 	constructor(source, destination, options, callback) {
-		if (this.isFunction(options)) {
-			// Called as imagely(source, destination, callback)
-			callback = options;
-			options = undefined;
+		Object.assign(this, { source, destination, options, callback });
+
+		this.json = {};
+		this.jsonIndex = 0;
+		this.originalHtmlString = '';
+		this.phantomjs = undefined;
+		this.page = undefined;
+
+		this.imagely();
+	}
+
+	imagely() {
+		if (this.isFunction(this.options)) {
+			this.callback = this.options;
+			this.options = undefined;
 		}
 
-		options = options || {};
+		this.options = this.options || {};
 
-		if (this.isUrl(source)) {
-			this.renderUrl(source, destination, options, callback);
+		if (this.isUrl(this.source)) {
+			this.renderUrl();
 		}
 		else {
-			this.renderFile(source, destination, options, callback);
+			this.renderFile();
 		}
 	}
 
 	/**
 	 * Generates an image from a URL for an HTML file.
 	 *
-	 * @private
-	 * @param {String} url - URL of the HTML page to render
-	 * @param {String} destination - Filepath of the image to save
-	 * @param {Object} options
-	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
-	renderUrl(url, destination, options, callback) {
-		phantom.create(function(phantomjs) {
-			phantomjs.createPage(function(page) {
-				page.open(url, function(status) {
+	renderUrl() {
+		phantom.create((phantomjs) => {
+			this.phantomjs = phantomjs;
+
+			this.phantomjs.createPage((page) => {
+				this.page = page;
+
+				this.page.open(this.source, (status) => {
 					if (status === 'success') {
-						this.renderPage(page, phantomjs, destination, options, callback);
+						this.renderPage(this.destination);
 					}
-					else if (callback) {
-						callback(new Error('Error loading URL "' + url + '"'));
+					else if (this.callback) {
+						callback(new Error('Error loading URL "' + this.source + '"'));
 					}
 				});
 			});
@@ -72,14 +83,9 @@ class Imagely {
 	 *
 	 * @todo Refactor to improve modularity & reusability
 	 *
-	 * @private
-	 * @param {String} filepath - Local filepath of the HTML page to render
-	 * @param {String} destination - Filepath of the image to save
-	 * @param {Object} options
-	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
-	renderFile(filepath, destination, options, callback) {
-		var html = fs.readFileSync(filepath, 'utf-8');
+	renderFile() {
+		var html = fs.readFileSync(this.source, 'utf-8');
 
 		// Finds all external script and stylesheet filenames
 		var scripts = html.match(/<script .*?src="(.*?)".*?<\/script>/gi).map(function(tag) {
@@ -90,7 +96,7 @@ class Imagely {
 		});
 
 		var files = {};
-		var dirname = path.dirname(filepath);
+		var dirname = path.dirname(this.source);
 
 		// Fetches all collected script and stylesheet content
 		scripts.forEach((filename) => {
@@ -115,18 +121,14 @@ class Imagely {
 			});
 		});
 
-		if (options.json) {
-			var json = fs.readFileSync(options.json, 'utf-8');
-			json = JSON.stringify(JSON.parse(json));  // Removes whitespace
-
-			var js = 'window.data = ' + json;
-			var script = '<script>' + js + '</script>';
-			html = html.replace('<head>', '<head>' + script);
+		if (this.options.json) {
+			this.json = JSON.parse(fs.readFileSync(this.options.json, 'utf-8'));
 		}
 
 		Promise
 			.all(_.map(files, 'promise'))
 			.then(function inlineExternalContent() {
+
 				_.forEach(files, function(file) {
 					var openTag = '<' + file.inlineTagName + '>';
 					var closeTag = '</' + file.inlineTagName + '>';
@@ -144,8 +146,20 @@ class Imagely {
 			.then((html) => {
 				phantom.create((phantomjs) => {
 					phantomjs.createPage((page) => {
-						page.setContent(html);
-						this.renderPage(page, phantomjs, destination, options, callback);
+						// After all other assets are cached in the html string set window data and render page.
+						this.page = page;
+						this.phantomjs = phantomjs;
+						this.originalHtmlString = html;
+						
+						// If batching, set first index of data, else just set data.
+						let windowData = (this.options.batch) ? this.json[this.jsonIndex] : this.json;
+
+						if (windowData) {
+							html = this.setWindowData(this.originalHtmlString, JSON.stringify(windowData));	
+						}
+
+						this.page.setContent(html);
+						this.renderPage(this.destination);
 					});
 				}, {
 					binary: phantomjs.path,
@@ -153,8 +167,8 @@ class Imagely {
 				});
 			})
 			.catch((err) => {
-				if (callback) {
-					callback('Error rendering file "' + filepath + '": ' + err)
+				if (this.callback) {
+					this.callback('Error rendering file "' + filepath + '": ' + err)
 				}
 			});
 	}
@@ -179,40 +193,45 @@ class Imagely {
 	/**
 	 * Generates an image from a populated PhantomJS page.
 	 *
-	 * @private
-	 * @param {phantomjs.webpage} page
-	 * @param {phantomjs} phantomjs
 	 * @param {String} destination - Filepath of the image to save
-	 * @param {Object} options
-	 * @param {Function} [callback] - Function to be called once the page has been rendered and saved to destination
 	 */
-	renderPage(page, phantomjs, destination, options, callback) {
-		if (options.width || options.height) {
-			page.set('viewportSize', { width: options.width, height: options.height });
+	renderPage(destination) {
+		if (this.options.width || this.options.height) {
+			this.page.set('viewportSize', { width: this.options.width, height: this.options.height });
 		}
-		if (options.scale) {
-			page.set('zoomFactor', options.scale);
+		if (this.options.scale) {
+			this.page.set('zoomFactor', this.options.scale);
 		}
-		if (options.bg) {
-			page.evaluate('function() { document.body.bgColor = "' + options.bg + '"; }');
+		if (this.options.bg) {
+			this.page.evaluate('function() { document.body.bgColor = "' + this.options.bg + '"; }');
 		}
 
-		page.render(destination, function() {
-			phantomjs.exit();
+		this.page.render(destination, () => {
+			// If not batching exit immediately.
+			if (!this.options.batch || (this.jsonIndex === this.json.length)) {
+				this.phantomjs.exit();
+			}
 
-			if (callback) {
-				var dimensions;
-				try {
-					dimensions = imageSize(destination);
-				}
-				catch (exception) {
-					dimensions = { width: null, height: null };
-				}
-				callback(null, dimensions);
+			if (this.callback) {
+				this.callback.call(this);
 			}
 		});
 	}
 
+	/**
+	 * Adds window.data to an html string and returns it.
+	 *
+	 * @param {String} html HTML string to add window data to.
+	 * @param {Sting} json JSON string to inject into html string.
+	 * @return {String} Html string with injected data.
+	 */
+	setWindowData(html, json) {
+		var js = 'window.data = ' + json;
+		var script = '<script>' + js + '</script>';
+
+		return html.replace('<head>', '<head>' + script);
+	}
+	
 	/**
 	 * Is a value a function?
 	 *
