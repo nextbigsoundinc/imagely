@@ -40,9 +40,9 @@ if (options.log) {
 else if (options.batch) {
 	callback = function() {
 		if (this.jsonIndex < this.json.length) {
-			let name = this.destination.split('.').slice(0, -1).pop();
-			let uniqueName = this.destination.replace(name, name + this.jsonIndex);
-			let html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.jsonIndex]));
+			var name = this.destination.split('.').slice(0, -1).pop();
+			var uniqueName = this.destination.replace(name, name + this.jsonIndex);
+			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.jsonIndex]));
 
 			this.page.setContent(html);
 			this.renderPage(uniqueName);
