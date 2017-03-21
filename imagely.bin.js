@@ -39,13 +39,14 @@ if (options.log) {
 }
 else if (options.batch) {
 	callback = function() {
-		if (this.batchIndex < this.batchLength) {
-			let html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.batchIndex]));
-			this.page.setContent(html);
+		if (this.jsonIndex < this.json.length) {
+			let name = this.destination.split('.').slice(0, -1).pop();
+			let uniqueName = this.destination.replace(name, name + this.jsonIndex);
+			let html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.jsonIndex]));
 
-			let batchDestination = this.makeUniqueDestination(this.destination, this.batchIndex);
-			this.renderPage(batchDestination);
-			this.batchIndex++;
+			this.page.setContent(html);
+			this.renderPage(uniqueName);
+			this.jsonIndex++;
 		}
 	};
 }
