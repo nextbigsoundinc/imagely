@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import Promise from 'bluebird';
-import imageSize from 'image-size';
+
 import path from 'path';
 import phantom from 'phantom';
 import phantomjs from 'phantomjs';
@@ -55,7 +55,6 @@ class Imagely {
 	/**
 	 * Generates an image from a URL for an HTML file.
 	 *
-	 * @private
 	 */
 	renderUrl() {
 		phantom.create(function(phantomjs) {
@@ -80,7 +79,6 @@ class Imagely {
 	 *
 	 * @todo Refactor to improve modularity & reusability
 	 *
-	 * @private
 	 */
 	renderFile() {
 		var html = fs.readFileSync(this.source, 'utf-8');
@@ -121,14 +119,6 @@ class Imagely {
 
 		if (this.options.json) {
 			this.json = JSON.parse(fs.readFileSync(this.options.json, 'utf-8'));
-
-			// If not batching images, set window data once.
-			if (!this.options.batch) {
-				html = this.setWindowData(html, JSON.stringify(this.json));
-			}
-			else {
-				this.batchLength = this.json.length;
-			}
 		}
 
 		Promise
@@ -152,17 +142,18 @@ class Imagely {
 			.then((html) => {
 				phantom.create((phantomjs) => {
 					phantomjs.createPage((page) => {
+						// After all other assets are cached in the html string set window data and render page.
 						this.page = page;
 						this.phantomjs = phantomjs;
+						this.batchLength = this.json.length;
+						this.originalHtmlString = html;
+						
+						// If batching, set first index of data, else just set data.
+						let windowData = (this.options.batch) ? this.json[this.batchLength] : this.json;
+						html = this.setWindowData(this.originalHtmlString, JSON.stringify(windowData));
 
-						// page, phantomjs, destination, options, callback
-						if (!this.options.batch) {
-							this.page.setContent(html);
-							this.renderPage(this.destination);
-						} else {
-							this.originalHtmlString = html;							
-							this.batch();
-						}
+						this.page.setContent(html);
+						this.renderPage(this.destination);
 					});
 				}, {
 					binary: phantomjs.path,
@@ -171,39 +162,9 @@ class Imagely {
 			})
 			.catch((err) => {
 				if (this.callback) {
-					callback('Error rendering file "' + filepath + '": ' + err)
+					this.callback('Error rendering file "' + filepath + '": ' + err)
 				}
 			});
-	}
-
-	/**
-	 * Assuming css, html, and js are the same in source files, render pages with unique json data.
-	 * The hope is
-	 *		1) We can make time gains by not opening and closing phantom every image.
-	 *		2) We can make time gains by caching repeated generated css, js, and html.
-	 */
-	batch() {
-		if (this.batchIndex < this.batchLength) {
-			let html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.batchIndex]));
-			this.page.setContent(html);
-
-			let batchDestination = this.makeUniqueDestination(this.destination, this.batchIndex);
-			this.renderPage(batchDestination);
-			this.batchIndex++;
-		}
-	}
-
-	/**
-	 * Returns a unique image destination name. The logic is arbitrary and should be replaced as needed.
-	 *
-	 * @param {String} destination Original local filepath.
-	 * @param {Number} index Index of image we're renaming; a quick way to make each image unique.
-	 * @return {String} Unique destination.
-	 */
-	makeUniqueDestination(destination, index) {
-		let name = destination.split('.').slice(0, -1).pop();
-
-		return destination.replace(name, name + index);
 	}
 
 	/**
@@ -226,7 +187,6 @@ class Imagely {
 	/**
 	 * Generates an image from a populated PhantomJS page.
 	 *
-	 * @private
 	 * @param {String} destination - Filepath of the image to save
 	 */
 	renderPage(destination) {
@@ -246,30 +206,34 @@ class Imagely {
 			}
 
 			if (this.callback) {
-				var dimensions;
-				try {
-					dimensions = imageSize(destination);
-				}
-				catch (exception) {
-					dimensions = { width: null, height: null };
-				}
-				this.callback(null, dimensions);
-			}
-
-			if (!(this.batchIndex === this.batchLength)) {
-				this.batch();
+				this.callback.call(this);
 			}
 		});
 	}
 
+	/**
+	 * Returns a unique image destination name. The logic is arbitrary and should be replaced as needed.
+	 *
+	 * @param {String} destination Original local filepath.
+	 * @param {Number} index Index of image we're renaming; a quick way to make each image unique.
+	 * @return {String} Unique destination.
+	 */
+	makeUniqueDestination(destination, index) {
+		let name = destination.split('.').slice(0, -1).pop();
+
+		return destination.replace(name, name + index);
+	}
+
+	/**
+	 * Adds window.data to an html string and returns it.
+	 *
+	 * @param {String} html HTML string to add window data to.
+	 * @param {Sting} json JSON string to inject into html string.
+	 * @return {String} Html string with injected data.
+	 */
 	setWindowData(html, json) {
 		var js = 'window.data = ' + json;
 		var script = '<script>' + js + '</script>';
-
-		if (this.options.batch) {
-			// Replace originalHtmlString when batching so we don't append scripts to same html string.
-			html = this.originalHtmlString;
-		}
 
 		return html.replace('<head>', '<head>' + script);
 	}
