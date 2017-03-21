@@ -27,8 +27,7 @@ class Imagely {
 		Object.assign(this, { source, destination, options, callback });
 
 		this.json = {};
-		this.batchLength = 1;
-		this.batchIndex = 0;
+		this.jsonIndex = 0;
 		this.originalHtmlString = '';
 		this.phantomjs = undefined;
 		this.page = undefined;
@@ -145,12 +144,14 @@ class Imagely {
 						// After all other assets are cached in the html string set window data and render page.
 						this.page = page;
 						this.phantomjs = phantomjs;
-						this.batchLength = this.json.length;
 						this.originalHtmlString = html;
 						
 						// If batching, set first index of data, else just set data.
-						let windowData = (this.options.batch) ? this.json[this.batchLength] : this.json;
-						html = this.setWindowData(this.originalHtmlString, JSON.stringify(windowData));
+						let windowData = (this.options.batch) ? this.json[this.jsonIndex] : this.json;
+
+						if (windowData) {
+							html = this.setWindowData(this.originalHtmlString, JSON.stringify(windowData));	
+						}
 
 						this.page.setContent(html);
 						this.renderPage(this.destination);
@@ -201,7 +202,8 @@ class Imagely {
 		}
 
 		this.page.render(destination, () => {
-			if (!this.options.batch || (this.batchIndex === this.batchLength)) {
+			// If not batching exit immediately.
+			if (!options.batch || (this.jsonIndex === this.json.length)) {
 				this.phantomjs.exit();
 			}
 
@@ -209,19 +211,6 @@ class Imagely {
 				this.callback.call(this);
 			}
 		});
-	}
-
-	/**
-	 * Returns a unique image destination name. The logic is arbitrary and should be replaced as needed.
-	 *
-	 * @param {String} destination Original local filepath.
-	 * @param {Number} index Index of image we're renaming; a quick way to make each image unique.
-	 * @return {String} Unique destination.
-	 */
-	makeUniqueDestination(destination, index) {
-		let name = destination.split('.').slice(0, -1).pop();
-
-		return destination.replace(name, name + index);
 	}
 
 	/**
