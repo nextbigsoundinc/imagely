@@ -56,9 +56,13 @@ class Imagely {
 	 *
 	 */
 	renderUrl() {
-		phantom.create(function(phantomjs) {
-			phantomjs.createPage(function(page) {
-				page.open(this.source, function(status) {
+		phantom.create((phantomjs) => {
+			this.phantomjs = phantomjs;
+
+			this.phantomjs.createPage((page) => {
+				this.page = page;
+
+				this.page.open(this.source, (status) => {
 					if (status === 'success') {
 						this.renderPage(this.destination);
 					}
@@ -203,7 +207,7 @@ class Imagely {
 
 		this.page.render(destination, () => {
 			// If not batching exit immediately.
-			if (!options.batch || (this.jsonIndex === this.json.length)) {
+			if (!this.options.batch || (this.jsonIndex === this.json.length)) {
 				this.phantomjs.exit();
 			}
 
