@@ -1,6 +1,6 @@
 {
   "name": "imagely",
-  "version": "0.1.12",
+  "version": "0.1.19",
   "author": "Mike Petrovich <michael.c.petrovich@gmail.com> (https://github.com/mpetrovich/)",
   "description": "Render any HTML, SVG, or JS as an image.",
   "keywords": [
@@ -33,7 +33,14 @@
   "bugs": {
     "url": "https://github.com/mpetrovich/imagely/issues"
   },
+  "bin": {
+    "imagely": "imagely.bin.js"
+  },
   "main": "imagely.bin.js",
+  "scripts": {
+    "compile": "./node_modules/.bin/babel -d lib/ src/ --presets es2015",
+    "prepublish": "npm run compile"
+  },
   "dependencies": {
     "babel-cli": "^6.23.0",
     "babel-core": "^6.23.1",
