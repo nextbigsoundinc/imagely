@@ -20,6 +20,7 @@ class Imagely {
 	 * @param {Number} [options.scale=1] - Zoom level; use scale = 2 for HiDPI/Retina-ready output
 	 * @param {String} [options.bg] - Background color
 	 * @param {String} [options.json] - Filepath of JSON data to preload into window.data
+	 * @param {Boolean} [options.batch] - Whether to loop through options.json and create a new image each iteration.
 	 * @param {Function} [callback] - Function to call upon completion; signature: (error, dimensions)
 	 *                                where `dimensions` is an object with properties: { width, height }
 	 */
