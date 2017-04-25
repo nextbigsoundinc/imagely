@@ -39,10 +39,16 @@ if (options.log) {
 else if (options.batch) {
 	callback = function() {
 		if (this.jsonIndex < this.json.length) {
-			var name = this.destination.split('.').slice(0, -1).pop();
-			var uniqueName = this.destination.replace(name, name + this.jsonIndex);
-			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(this.json[this.jsonIndex]));
+			var json = this.json[this.jsonIndex];
+			var uniqueName;
 
+			if (json.length > 0) {
+				var name = this.destination.split('/').slice(-1).pop();
+				uniqueName = this.destination.replace(name, json[0].key + '.gif');
+			} else {
+				uniqueName = 'no-data';
+			}
+			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(json));
 			this.page.setContent(html);
 			this.renderPage(uniqueName);
 			this.jsonIndex++;
