@@ -22,6 +22,7 @@ options.bg = args.bg || args.b;
 options.json = args.json || args.d;
 options.log = args.log || args.l;
 options.batch = args.batch;
+options.logFilepath = args.logFilepath;
 
 function addToBatchLogs(json) {
 	var log;
@@ -49,8 +50,8 @@ function addToBatchLogs(json) {
 	}
 }
 
-function writeLogFile(file) {
-	fs.writeFile(file, JSON.stringify(logs, 0, 4), function(err) {
+function writeLogFile(logFilepath) {
+	fs.writeFile(logFilepath, JSON.stringify(logs, 0, 4), function(err) {
 		if (err) {
 			return console.log(err);
 		}
@@ -90,7 +91,7 @@ else if (options.batch) {
 
 			addToBatchLogs(json);
 		} else {
-			writeLogFile('/tmp/imagely-batch-logs.txt');
+			writeLogFile(options.logFilepath);
 		}
 	};
 }
