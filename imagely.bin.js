@@ -29,7 +29,6 @@ function addToBatchLogs(json) {
 	var log;
 	var dimensions;
 	var filename = json.filename;
-	var filenameArray = filename.split('_');
 
 	try {
 		dimensions = imageSize(destination);
@@ -39,8 +38,7 @@ function addToBatchLogs(json) {
 	}
 
 	log = dimensions;
-	log.uuid = filenameArray[1];
-	log.endpoint = filenameArray[0];
+	log.filename = filename;
 
 	// Check if truthy; account for null, 0, or undefined.
 	if (log.width && log.height) {
