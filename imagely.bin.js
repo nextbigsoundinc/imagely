@@ -2,6 +2,7 @@
 
 var Imagely = require('./lib/imagely.js').default;
 var yargs = require('yargs');
+var path = require('path');
 var imageSize = require('image-size');
 var args = yargs.argv;
 
@@ -27,8 +28,8 @@ options.logFilepath = args.logFilepath;
 function addToBatchLogs(json) {
 	var log;
 	var dimensions;
-	var imageKey = json[0].key;
-	var imageKeyArray = imageKey.split('_');
+	var filename = json.filename;
+	var filenameArray = filename.split('_');
 
 	try {
 		dimensions = imageSize(destination);
@@ -38,8 +39,8 @@ function addToBatchLogs(json) {
 	}
 
 	log = dimensions;
-	log['uuid'] = imageKeyArray[1];
-	log['endpoint'] = imageKeyArray[0];
+	log.uuid = filenameArray[1];
+	log.endpoint = filenameArray[0];
 
 	// Check if truthy; account for null, 0, or undefined.
 	if (log.width && log.height) {
@@ -51,7 +52,7 @@ function addToBatchLogs(json) {
 }
 
 function writeLogFile(logFilepath) {
-	fs.writeFile(logFilepath, JSON.stringify(logs, 0, 4), function(err) {
+	fs.writeFile(logFilepath, JSON.stringify(logs, null, 4), function(err) {
 		if (err) {
 			return console.log(err);
 		}
@@ -80,13 +81,12 @@ else if (options.batch) {
 	callback = function() {
 		if (this.jsonIndex < this.json.length) {
 			var json = this.json[this.jsonIndex];
-			var uniqueName;
-			var name = this.destination.split('/').slice(-1).pop();
+			var name = path.basename(this.destination);
 			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(json));
-			uniqueName = this.destination.replace(name, json[0].key + '.gif');
+			var filename = this.destination.replace(name, json.filename + '.gif');
 
 			this.page.setContent(html);
-			this.renderPage(uniqueName);
+			this.renderPage(filename);
 			this.jsonIndex++;
 
 			addToBatchLogs(json);
