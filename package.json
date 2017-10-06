@@ -25,13 +25,13 @@
     "phantomjs"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/mpetrovich/imagely",
+  "homepage": "https://github.com/nextbigsoundinc/imagely",
   "repository": {
     "type": "git",
-    "url": "git://github.com/mpetrovich/imagely.git"
+    "url": "git://github.com/nextbigsoundinc/imagely.git"
   },
   "bugs": {
-    "url": "https://github.com/mpetrovich/imagely/issues"
+    "url": "https://github.com/nextbigsoundinc/imagely/issues"
   },
   "bin": {
     "imagely": "imagely.bin.js"
