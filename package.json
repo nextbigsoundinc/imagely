@@ -1,6 +1,6 @@
 {
   "name": "imagely",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Mike Petrovich <michael.c.petrovich@gmail.com> (https://github.com/mpetrovich/)",
   "description": "Render any HTML, SVG, or JS as an image.",
   "keywords": [
