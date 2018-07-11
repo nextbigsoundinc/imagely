@@ -76,14 +76,14 @@ if (options.log) {
 	};
 }
 else if (options.batch) {
-	callback = function() {
+	callback = async function() {
 		if (this.jsonIndex < this.json.length) {
 			var json = this.json[this.jsonIndex];
 			var name = path.basename(this.destination);
 			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(json));
 			var filename = this.destination.replace(name, json.filename + '.gif');
 
-			this.page.setContent(html);
+			await this.page.setContent(html);
 			this.renderPage(filename);
 			this.jsonIndex++;
 

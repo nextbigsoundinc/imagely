@@ -2,8 +2,7 @@ import _ from 'lodash';
 import Promise from 'bluebird';
 
 import path from 'path';
-import phantom from 'phantom';
-import phantomjs from 'phantomjs';
+import puppeteer from 'puppeteer';
 import request from 'request-promise';
 const fs = Promise.promisifyAll(require('fs'));
 
@@ -30,8 +29,6 @@ class Imagely {
 		this.json = {};
 		this.jsonIndex = 0;
 		this.originalHtmlString = '';
-		this.phantomjs = undefined;
-		this.page = undefined;
 
 		this.imagely();
 	}
@@ -56,26 +53,11 @@ class Imagely {
 	 * Generates an image from a URL for an HTML file.
 	 *
 	 */
-	renderUrl() {
-		phantom.create((phantomjs) => {
-			this.phantomjs = phantomjs;
-
-			this.phantomjs.createPage((page) => {
-				this.page = page;
-
-				this.page.open(this.source, (status) => {
-					if (status === 'success') {
-						this.renderPage(this.destination);
-					}
-					else if (this.callback) {
-						callback(new Error('Error loading URL "' + this.source + '"'));
-					}
-				});
-			});
-		}, {
-			binary: phantomjs.path,
-			dnodeOpts: { weak: false }
-		});
+	async renderUrl() {
+		this.browser = await puppeteer.launch();
+		this.page = await this.browser.newPage();
+		await this.page.goto(this.source)
+		this.renderPage(this.destination);
 	}
 
 	/**
@@ -143,28 +125,18 @@ class Imagely {
 
 				return html;
 			})
-			.then((html) => {
-				phantom.create((phantomjs) => {
-					phantomjs.createPage((page) => {
-						// After all other assets are cached in the html string set window data and render page.
-						this.page = page;
-						this.phantomjs = phantomjs;
-						this.originalHtmlString = html;
-						
-						// If batching, set first index of data, else just set data.
-						let windowData = (this.options.batch) ? this.json[this.jsonIndex] : this.json;
+			.then(async html => {
+				this.browser = await puppeteer.launch();
+				this.page = await this.browser.newPage();
+				this.originalHtmlString = html;
 
-						if (windowData) {
-							html = this.setWindowData(this.originalHtmlString, JSON.stringify(windowData));	
-						}
+				const windowData = (this.options.batch) ? this.json[this.jsonIndex] : this.json;
+				if (windowData) {
+					html = this.setWindowData(this.originalHtmlString, JSON.stringify(windowData));
+				}
 
-						this.page.setContent(html);
-						this.renderPage(this.destination);
-					});
-				}, {
-					binary: phantomjs.path,
-					dnodeOpts: { weak: false }
-				});
+				await this.page.setContent(html);
+				this.renderPage(this.destination);
 			})
 			.catch((err) => {
 				if (this.callback) {
@@ -195,27 +167,38 @@ class Imagely {
 	 *
 	 * @param {String} destination - Filepath of the image to save
 	 */
-	renderPage(destination) {
-		if (this.options.width || this.options.height) {
-			this.page.set('viewportSize', { width: this.options.width, height: this.options.height });
+	async renderPage(destination) {
+
+		if (this.options.width || this.options.height || this.options.scale) {
+			const origViewport = this.page.viewport();
+
+			await this.page.setViewport({
+				width: this.options.width || origViewport.width,
+				height: this.options.height || origViewport.height,
+				deviceScaleFactor: this.options.scale || 1
+			});
 		}
-		if (this.options.scale) {
-			this.page.set('zoomFactor', this.options.scale);
-		}
+
 		if (this.options.bg) {
-			this.page.evaluate('function() { document.body.bgColor = "' + this.options.bg + '"; }');
+			await this.page.evaluate(bg => {
+				document.body.bgColor = bg;
+			}, this.options.bg);
 		}
 
-		this.page.render(destination, () => {
-			// If not batching exit immediately.
-			if (!this.options.batch || (this.jsonIndex === this.json.length)) {
-				this.phantomjs.exit();
-			}
-
-			if (this.callback) {
-				this.callback.call(this);
-			}
+		await this.page.screenshot({
+			path: destination,
+			type: 'png',
+			omitBackground: true
 		});
+
+		// If not batching exit immediately.
+		if (!this.options.batch || (this.jsonIndex === this.json.length)) {
+			await this.browser.close();
+		}
+
+		if (this.callback) {
+			this.callback.call(this);
+		}
 	}
 
 	/**
@@ -231,7 +214,7 @@ class Imagely {
 
 		return html.replace('<head>', '<head>' + script);
 	}
-	
+
 	/**
 	 * Is a value a function?
 	 *
