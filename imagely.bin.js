@@ -79,16 +79,23 @@ else if (options.batch) {
 	callback = async function() {
 		if (this.jsonIndex < this.json.length) {
 			var json = this.json[this.jsonIndex];
-			var name = path.basename(this.destination);
 			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(json));
-			var filename = this.destination.replace(name, json.filename + '.gif');
+
+			if (json.filename) {
+				var name = path.basename(this.destination);
+				var filename = this.destination.replace(name, json.filename + '.gif');
+			}
+			else {
+				var name = this.destination.split('.').slice(0, -1).pop();
+				var filename = this.destination.replace(name, name + this.jsonIndex);
+			}
 
 			await this.page.setContent(html);
 			this.renderPage(filename);
 			this.jsonIndex++;
 
 			addToBatchLogs(json);
-		} else {
+		} else if (options.logFilepath) {
 			writeLogFile(options.logFilepath);
 		}
 	};
