@@ -30,6 +30,9 @@
     "type": "git",
     "url": "git://github.com/nextbigsoundinc/imagely.git"
   },
+  "engines": {
+    "node": ">=6.4.0"
+  },
   "bugs": {
     "url": "https://github.com/nextbigsoundinc/imagely/issues"
   },
