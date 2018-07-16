@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+require("babel-core/register");
+require("babel-polyfill");
 var Imagely = require('./lib/imagely.js').default;
 var yargs = require('yargs');
 var path = require('path');
@@ -76,7 +78,7 @@ if (options.log) {
 	};
 }
 else if (options.batch) {
-	callback = async function() {
+	callback = function() {
 		if (this.jsonIndex < this.json.length) {
 			var json = this.json[this.jsonIndex];
 			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(json));
@@ -90,11 +92,13 @@ else if (options.batch) {
 				var filename = this.destination.replace(name, name + this.jsonIndex);
 			}
 
-			await this.page.setContent(html);
-			this.renderPage(filename);
-			this.jsonIndex++;
+			this.page.setContent(html).then(() => {
+				this.renderPage(filename);
+				this.jsonIndex++;
 
-			addToBatchLogs(json);
+				addToBatchLogs(json);
+			});
+
 		} else if (options.logFilepath) {
 			writeLogFile(options.logFilepath);
 		}
