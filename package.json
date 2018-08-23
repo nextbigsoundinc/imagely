@@ -55,7 +55,5 @@
     "request-promise": "^4.1.1",
     "yargs": "^7.0.1"
   },
-  "devDependencies": {
-    "yarn": "^0.21.3"
-  }
+  "devDependencies": {}
 }
