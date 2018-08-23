@@ -30,6 +30,9 @@
     "type": "git",
     "url": "git://github.com/nextbigsoundinc/imagely.git"
   },
+  "engines": {
+    "node": ">=6.4.0"
+  },
   "bugs": {
     "url": "https://github.com/nextbigsoundinc/imagely/issues"
   },
@@ -48,8 +51,7 @@
     "bluebird": "^3.5.0",
     "image-size": "^0.5.1",
     "lodash": "^4.17.4",
-    "phantom": "1.x",
-    "phantomjs": "^2.1.7",
+    "puppeteer": "^1.5.0",
     "request-promise": "^4.1.1",
     "yargs": "^7.0.1"
   },
