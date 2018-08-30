@@ -20,9 +20,7 @@
     "svg",
     "js",
     "d3",
-    "css",
-    "phantom",
-    "phantomjs"
+    "css"
   ],
   "license": "MIT",
   "homepage": "https://github.com/nextbigsoundinc/imagely",
@@ -52,7 +50,8 @@
     "image-size": "^0.5.1",
     "lodash": "^4.17.4",
     "puppeteer": "^1.5.0",
-    "request-promise": "^4.1.1",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
     "yargs": "^7.0.1"
   },
   "devDependencies": {}
