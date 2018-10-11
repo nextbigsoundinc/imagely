@@ -76,7 +76,12 @@ if (options.log) {
 	};
 }
 else if (options.batch) {
-	callback = async function() {
+	callback = async function(err) {
+		if (err) {
+			console.error(err);
+			return;
+		}
+
 		if (this.jsonIndex < this.json.length) {
 			var json = this.json[this.jsonIndex];
 			var html = this.setWindowData(this.originalHtmlString, JSON.stringify(json));
