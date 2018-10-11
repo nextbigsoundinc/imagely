@@ -90,7 +90,7 @@ imagely examples/d3/chart.html examples/d3/chart.gif --json=examples/d3/data.jso
 var imagely = require('imagely');
 imagely(
 	'examples/d3-batch/chart.html',
-	'examples/d3-batch/chart.gif', 
+	'examples/d3-batch/chart.gif',
 	{
 		json: 'examples/d3-batch/data.json',
 		bg: 'purple',
@@ -140,4 +140,4 @@ imagely http://ariya.github.io/svg/tiger.svg examples/tiger.png --scale=2 --log
 
 How it works
 ------------
-Imagely is a light wrapper around PhantomJS. Local file rendering isn't well supported by PhantomJS, so in those cases Imagely inlines the content of all referenced scripts and stylesheets, even if they're remote URLs.
+Imagely is a light wrapper around [puppeteer](https://github.com/GoogleChrome/puppeteer) that facilitates batch processing.
