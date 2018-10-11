@@ -140,7 +140,10 @@ class Imagely {
 			})
 			.catch((err) => {
 				if (this.callback) {
-					this.callback('Error rendering file "' + filepath + '": ' + err)
+					this.callback(err);
+				}
+				else {
+					throw err;
 				}
 			});
 	}
